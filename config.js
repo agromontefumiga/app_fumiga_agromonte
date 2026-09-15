@@ -8,6 +8,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Exponer en window para evitar errores de consola y pruebas directas
+window._supabase = _supabase;
+
 export const CATEGORIAS_PEDIDO = ['FLOR', 'DESARROLLO', 'HETERO', 'ACAROS', 'AMBIENTAL', 'ADICIONAL'];
 export let pedidoActual = { FLOR: [], DESARROLLO: [], HETERO: [], ACAROS: [], AMBIENTAL: [], ADICIONAL: [] };
 export let historialPedidos = [];

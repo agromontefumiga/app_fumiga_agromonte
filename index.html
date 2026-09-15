@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agromonte - Sistema Inteligente</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind Play CDN v3 -->
+    <script src="https://cdn.tailwindcss.com?v=3.4.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Librería XLSX para exportar a Excel nativo -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         .scroll-horizontal::-webkit-scrollbar { height: 8px; }
         .scroll-horizontal::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
@@ -17,11 +20,18 @@
         input[type="number"]::-webkit-inner-spin-button, 
         input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type="number"] { -moz-appearance: textfield; }
+
+        /* Reglas estiradas para forzar una sola página perfecta en html2pdf */
+        #reporte-programa {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
-   <div id="menu-principal" class="max-w-4xl mx-auto p-4 sm:p-10 mt-10 sm:mt-20 bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl mx-4 sm:mx-auto">
+    <!-- MENÚ PRINCIPAL -->
+    <div id="menu-principal" class="max-w-4xl mx-auto p-4 sm:p-10 mt-10 sm:mt-20 bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl mx-4 sm:mx-auto">
         <h2 class="text-xl sm:text-2xl font-black text-white mb-6 sm:mb-8 text-center uppercase tracking-widest border-b border-emerald-600 pb-4">Menú Principal Agromonte</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             
@@ -40,26 +50,35 @@
                 <span class="text-3xl mb-2">🧪</span> Crear Nuevo Producto
             </button>
 
-            <!-- El resto igual -->
-            <button class="p-5 sm:p-6 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-bold transition flex flex-col items-center">
-                <span class="text-3xl mb-2">🏷️</span> Etiquetas
+            <!-- 4. Etiquetas de Fumigación -->
+            <button onclick="mostrarModulo('etiquetas')" class="p-5 sm:p-6 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-bold transition flex flex-col items-center shadow-lg border border-slate-500">
+                <span class="text-3xl mb-2">🏷️</span> Etiquetas de Fumigación
             </button>
+
+            <!-- 5. Fichas Técnicas -->
             <button class="p-5 sm:p-6 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-bold transition flex flex-col items-center">
                 <span class="text-3xl mb-2">📄</span> Fichas Técnicas
             </button>
+
+            <!-- 6. Rotación Productos -->
             <button class="p-5 sm:p-6 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-bold transition flex flex-col items-center">
                 <span class="text-3xl mb-2">🔄</span> Rotación Productos
             </button>
 
-            <!-- Abajo abarcando las dos columnas -->
-            <button class="p-5 sm:p-6 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-bold transition flex flex-col items-center md:col-span-2">
+            <!-- 7. Descargas y Reportes -->
+            <button onclick="mostrarModulo('descargas-reportes')" class="p-5 sm:p-6 bg-emerald-800 hover:bg-emerald-700 rounded-xl text-white font-bold transition flex flex-col items-center shadow-lg border border-emerald-600">
+                <span class="text-3xl mb-2">📥</span> Descargas y Reportes
+            </button>
+
+            <!-- 8. Historial Programas de Fumigación -->
+            <button onclick="mostrarModulo('historial-programas')" class="p-5 sm:p-6 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-bold transition flex flex-col items-center shadow-lg border border-slate-500">
                 <span class="text-3xl mb-2">🕒</span> Historial Programas de Fumigación
             </button>
             
         </div>
     </div>
 
-    <!-- Sección Fumigación -->
+    <!-- SECCIÓN FUMIGACIÓN -->
     <div id="seccion-fumigacion" class="hidden">
         <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 no-print">
             <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -72,40 +91,168 @@
 
         <main class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
             <section id="sec-programa" class="space-y-6">
+                <!-- Configuración del Programa -->
                 <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 sm:p-6 shadow-xl no-print">
                     <h2 class="text-xl font-bold text-emerald-400 mb-4 border-b border-slate-700 pb-2">Configuración del Programa</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-                        <div><label class="block text-xs uppercase text-slate-400">Blanco Biológico</label><input type="text" id="inp-blanco" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white outline-none"></div>
-                        <div><label class="block text-xs uppercase text-slate-400">Semana (AASS)</label><select id="inp-semana" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white outline-none cursor-pointer"><option value="">Seleccione...</option></select></div>
-                        <div><label class="block text-xs uppercase text-slate-400">Solicitó</label><input type="text" id="inp-solicito" value="NELSON SUÁREZ" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white outline-none"></div>
-                        <div><label class="block text-xs uppercase text-slate-400">Aprobó</label><input type="text" id="inp-aprobo" value="RODRIGO MUÑOZ" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white outline-none"></div>
-                        <div><label class="block text-xs uppercase text-slate-400">Dosis (cc)</label><input type="number" id="inp-dosis" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-emerald-300 font-bold outline-none"></div>
-                        <div><label class="block text-xs uppercase text-slate-400">AGUA (LTS/CAMA)</label><input type="number" id="inp-agua" max="99999" class="w-full sm:w-24 bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-emerald-300 font-bold outline-none"></div>
+                    
+                    <!-- Fila 1 -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs uppercase text-slate-400">Blanco Biológico</label>
+                            <input type="text" id="inp-blanco" list="lista-blancos" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white outline-none">
+                            <datalist id="lista-blancos"></datalist>
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase text-slate-400">Semana (AASS)</label>
+                            <select id="inp-semana" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white outline-none cursor-pointer">
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase text-slate-400">Solicitó</label>
+                            <input type="text" id="inp-solicito" value="NELSON SUÁREZ" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase text-slate-400">Aprobó</label>
+                            <input type="text" id="inp-aprobo" value="RODRIGO MUÑOZ" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase text-slate-400">Fecha de Elaboración</label>
+                            <input type="date" id="inp-fecha-elaboracion" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white outline-none cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase text-slate-400">Fecha de Ejecución</label>
+                            <input type="date" id="inp-fecha-ejecucion" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white outline-none cursor-pointer">
+                        </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div><label class="block text-xs uppercase text-slate-400 mb-2">1. Selecciona los Bloques:</label><div class="bg-slate-900 border border-slate-700 rounded-lg p-3 w-full"><div id="grid-bloques" class="flex flex-nowrap overflow-x-auto scroll-horizontal gap-2 pb-2 items-center"></div></div></div>
-                        <div><label class="block text-xs uppercase text-slate-400 mb-2">2. Buscar y añadir Productos:</label><input type="text" id="buscador-productos" placeholder="Escribe para buscar..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white outline-none"><div id="dropdown-productos" class="hidden absolute z-20 w-80 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl"></div><div id="productos-seleccionados-container" class="mt-3 flex flex-wrap gap-2"></div></div>
+
+                    <!-- Sección de Bloques -->
+                    <div class="mb-4 bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+                        <label class="block text-xs uppercase text-slate-400 mb-3 font-bold">Bloques:</label>
+                        <div id="grid-bloques" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-3 w-full"></div>
                     </div>
-                    <button onclick="exportarProgramaPDF()" class="mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-3 rounded-lg w-full transition shadow-lg">Descargar Programa (PDF)</button>
+
+                    <!-- Fila Inferior: Parámetros del Programa -->
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4 bg-slate-900/80 p-4 rounded-xl border border-slate-700">
+                        <div>
+                            <label class="block text-xs uppercase text-slate-400 mb-1 font-bold">Agua (Lts/Cama)</label>
+                            <input type="number" id="inp-agua" max="99999" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-emerald-300 font-bold outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase text-slate-400 mb-1 font-bold">Observaciones</label>
+                            <select id="inp-observacion" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white outline-none cursor-pointer">
+                                <option value="">Seleccione observación...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase text-slate-400 mb-1 font-bold">Dirigido a</label>
+                            <select id="inp-dirigido" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white outline-none cursor-pointer">
+                                <option value="">Seleccione tipo...</option>
+                            </select>
+                        </div>
+                        <div class="relative">
+                            <label class="block text-xs uppercase text-slate-400 mb-1 font-bold">Buscar y añadir Producto:</label>
+                            <input type="text" id="buscador-productos" placeholder="Escribe para buscar..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white outline-none focus:border-emerald-500">
+                            <div id="dropdown-productos" class="hidden absolute z-20 left-0 right-0 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl mt-1"></div>
+                        </div>
+                    </div>
+
+                    <!-- Fila Bombas usadas (Selección Múltiple) -->
+                    <div class="mb-4 bg-slate-900/80 p-4 rounded-xl border border-slate-700">
+                        <label class="block text-xs uppercase text-slate-400 mb-2 font-bold">Bombas usadas:</label>
+                        <div class="flex flex-wrap items-center gap-6 text-xs text-slate-200">
+                            <label class="flex items-center gap-2 cursor-pointer hover:text-emerald-400">
+                                <input type="checkbox" name="bomba-usada" value="Espalda" class="accent-emerald-500 w-4 h-4 cursor-pointer">
+                                <span>Espalda</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer hover:text-emerald-400">
+                                <input type="checkbox" name="bomba-usada" value="Portátil" class="accent-emerald-500 w-4 h-4 cursor-pointer">
+                                <span>Portátil</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer hover:text-emerald-400">
+                                <input type="checkbox" name="bomba-usada" value="Estacionaria" class="accent-emerald-500 w-4 h-4 cursor-pointer">
+                                <span>Estacionaria</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="productos-seleccionados-container" class="mb-4 flex flex-wrap gap-2"></div>
+
+                    <button onclick="exportarProgramaPDF()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-3 rounded-lg w-full transition shadow-lg">Descargar Programa (PDF)</button>
                 </div>
 
-                <div id="reporte-programa" class="bg-white text-slate-900 p-4 sm:p-8 rounded-xl shadow-2xl w-full overflow-x-auto scroll-horizontal">
-                    <div class="text-center mb-6"><h2 class="text-2xl sm:text-3xl font-black text-emerald-800">CI AGROMONTE SAS</h2><p class="text-xs font-bold text-slate-500 uppercase tracking-widest border-b-2 border-emerald-800 inline-block pb-1">PROGRAMA DE FUMIGACIÓN PARA CULTIVO DE CLAVEL, MINICLAVEL Y BRASSICAS</p></div>
-                    <div class="flex justify-between text-sm mb-4 font-bold"><p>Orden N°: <span id="lbl-orden">21000</span></p><p>Fecha Plan: <span id="lbl-fecha">--</span></p></div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse border border-slate-300 text-xs text-left mb-6 whitespace-nowrap">
-                            <thead><tr class="bg-emerald-800 text-white uppercase"><th class="p-2 border">Bloque</th><th class="p-2 border">Camas</th><th id="dinamic-products-header" class="p-2 border">Productos/Estado</th></tr></thead>
-                            <tbody id="tbody-calculos"></tbody>
+                <!-- REPORTE IMPRESIÓN PDF -->
+                <div id="reporte-programa" class="bg-white text-slate-900 p-4 sm:p-6 rounded-xl shadow-2xl w-full">
+                    <div class="text-center mb-4">
+                        <h2 class="text-2xl sm:text-3xl font-black text-emerald-800">CI AGROMONTE SAS</h2>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b-2 border-emerald-800 inline-block pb-0.5">PROGRAMA DE FUMIGACIÓN PARA CULTIVO DE CLAVEL, MINICLAVEL Y BRASSICAS</p>
+                    </div>
+                    
+                    <div class="flex justify-between text-xs mb-3 font-bold">
+                        <p>Orden de Fumigación: <span id="lbl-orden">21000</span></p>
+                        <p>Fecha Plan: <span id="lbl-fecha">--</span></p>
+                    </div>
+
+                    <!-- Tabla Superior: Bloques y Camas -->
+                    <div class="mb-4">
+                        <p class="text-xs font-bold uppercase text-slate-700 mb-1">Bloques Seleccionados y Camas:</p>
+                        <div class="border border-slate-300 rounded-lg overflow-hidden">
+                            <table class="w-full border-collapse text-xs text-center table-fixed">
+                                <tbody id="tbody-tabla-bloques-horizontal">
+                                    <tr><td class="p-3 text-slate-400 italic">Selecciona bloques...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tabla Inferior: Detalle Exclusivo de Productos (Con IRAC y FRAC) -->
+                    <div class="mb-4">
+                        <p class="text-xs font-bold uppercase text-slate-700 mb-1">Programa de Productos:</p>
+                        <table class="w-full border-collapse border border-slate-300 text-xs text-left">
+                            <thead class="bg-emerald-800 text-white uppercase">
+                                <tr>
+                                    <th class="p-1.5 border border-slate-300 text-center">Producto</th>
+                                    <th class="p-1.5 border border-slate-300 text-center">Registro ICA</th>
+                                    <th class="p-1.5 border border-slate-300 text-center">Ingrediente Activo</th>
+                                    <th class="p-1.5 border border-slate-300 text-center">Categoría Toxicológica</th>
+                                    <th class="p-1.5 border border-slate-300 text-center">IRAC</th>
+                                    <th class="p-1.5 border border-slate-300 text-center">FRAC</th>
+                                    <th class="p-1.5 border border-slate-300 text-center">Concentración I.A.</th>
+                                    <th class="p-1.5 border border-slate-300 text-center">Tiempo Reingreso</th>
+                                    <th class="p-1.5 border border-slate-300 text-center">Dosis</th>
+                                    <th class="p-1.5 border border-slate-300 text-center">Cant. Producto</th>
+                                    <th class="p-1.5 border border-slate-300 text-center">Blanco Biológico</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-productos-detalle">
+                                <tr><td colspan="11" class="p-3 text-center text-slate-400 italic">Selecciona al menos un producto...</td></tr>
+                            </tbody>
                         </table>
                     </div>
-                    <div id="tabla-tecnica-container"></div>
-                    <input type="number" id="valor-total-camas" class="bg-slate-800 border border-slate-600 text-emerald-400 font-black text-xl p-1 rounded outline-none w-32 hidden" step="any" placeholder="Camas">
+
+                    <!-- Pie del Reporte: Fumigadores Asignados -->
+                    <div class="mt-4 pt-3 border-t border-slate-300 flex justify-between items-start text-xs">
+                        <div class="w-1/2">
+                            <p class="font-bold uppercase text-slate-700 mb-1">Fumigadores Asignados (Área Nelson):</p>
+                            <div id="lista-fumigadores-nelson" class="text-slate-800 space-y-0.5">
+                                <span class="italic text-slate-400">Cargando personal...</span>
+                            </div>
+                        </div>
+                        <div class="w-1/3 text-right">
+                            <p class="font-bold uppercase text-slate-700 mb-6">Firma Responsable:</p>
+                            <div class="border-t border-slate-400 pt-1">
+                                <span class="text-[10px] text-slate-500 uppercase">Control Fitosanitario</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="number" id="valor-total-camas" class="hidden" step="any">
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- Sección Pedido de Químicos -->
+    <!-- SECCIÓN PEDIDO DE QUÍMICOS -->
     <div id="seccion-pedido-quimicos" class="hidden">
         <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 no-print">
             <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -116,13 +263,12 @@
             </div>
         </header>
 
-        <!-- Selector de Semana para el Pedido -->
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
             <div class="flex flex-wrap items-center gap-4 mb-4 bg-slate-900 p-3 rounded-xl border border-slate-700">
                 <select id="sel-semana-pedido" onchange="actualizarSumaFlor()" class="bg-slate-800 text-white p-2 rounded-lg border border-slate-600 text-sm outline-none">
                     <option value="">Semana</option>
                 </select>
-                <div class="text-emerald-400 font-black text-lg sm:text-xl" id="valor-total-camas"></div>
+                <div class="text-emerald-400 font-black text-lg sm:text-xl" id="valor-total-camas-pedido"></div>
             </div>
         </div>
 
@@ -139,12 +285,9 @@
                 </button>
             </div>
 
-            <!-- Vista 1: Crear Pedido -->
             <div id="vista-crear-pedido" class="bg-slate-800 border border-slate-700 rounded-xl p-4 sm:p-6 shadow-xl no-print block">
                 <h2 class="text-xl font-bold text-emerald-400 mb-6 border-b border-slate-700 pb-2">Nuevo Pedido de Químicos</h2>
-                
                 <div id="contenedor-categorias-pedido" class="space-y-8"></div>
-                
                 <div class="mt-8 pt-4 border-t border-slate-700 text-right">
                     <button onclick="abrirModalConfirmacion('crear')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-8 py-4 rounded-lg transition w-full sm:w-auto text-lg shadow-lg shadow-emerald-900/50">
                         📤 Generar y Enviar a Almacén
@@ -152,37 +295,27 @@
                 </div>
             </div>
 
-            <!-- Vista 2: Almacén -->
             <div id="vista-almacen-pedidos" class="bg-slate-800 border border-slate-700 rounded-xl p-4 sm:p-6 shadow-xl hidden">
                 <h2 class="text-xl font-bold text-emerald-400 mb-4 border-b border-slate-700 pb-2 flex items-center justify-between">
                     <span>📦 Pedidos Pendientes de Confirmación</span>
                 </h2>
-                
                 <div id="lista-pendientes-almacen" class="space-y-6">
-                    <div class="text-slate-400 text-center py-6 italic border-2 border-dashed border-slate-700 rounded-lg">
-                        Cargando pedidos...
-                    </div>
+                    <div class="text-slate-400 text-center py-6 italic border-2 border-dashed border-slate-700 rounded-lg">Cargando pedidos...</div>
                 </div>
             </div>
 
-            <!-- Vista 3: Historial -->
             <div id="vista-historial-pedidos" class="bg-slate-800 border border-slate-700 rounded-xl p-4 sm:p-6 shadow-xl hidden">
                 <h2 class="text-xl font-bold text-emerald-400 mb-4 border-b border-slate-700 pb-2 flex items-center justify-between">
                     <span>🕒 Historial de Pedidos Confirmados</span>
                 </h2>
-                
                 <div id="lista-historial-pedidos" class="space-y-6">
-                    <div class="text-slate-400 text-center py-6 italic border-2 border-dashed border-slate-700 rounded-lg">
-                        Aún no hay pedidos confirmados.
-                    </div>
+                    <div class="text-slate-400 text-center py-6 italic border-2 border-dashed border-slate-700 rounded-lg">Aún no hay pedidos confirmados.</div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- ========================================== -->
-    <!-- NUEVA SECCIÓN: CREAR PRODUCTO QUÍMICO      -->
-    <!-- ========================================== -->
+    <!-- SECCIÓN CREAR PRODUCTO QUÍMICO -->
     <div id="seccion-crear-producto" class="hidden">
         <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 no-print">
             <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -200,59 +333,58 @@
                 <h2 class="text-2xl font-black text-amber-500 uppercase tracking-wider mb-2">Crear Nuevo Producto</h2>
                 <p class="text-slate-400 text-sm mb-8 pb-4 border-b border-slate-700">Llena la ficha técnica del producto. Al guardar, quedará disponible inmediatamente para todos los módulos de pedido y fumigación.</p>
 
-                <!-- Grid del formulario -->
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-5 mb-6">
-                    
                     <div class="md:col-span-12">
                         <label class="block text-[11px] uppercase text-amber-400 mb-1 font-bold">Nombre del Producto *</label>
                         <input type="text" id="np-producto" class="np-input w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white text-lg font-bold outline-none focus:border-amber-500 transition uppercase" placeholder="Ej: VERTIMEC 018 EC">
                     </div>
-
                     <div class="md:col-span-6">
                         <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Registro ICA</label>
                         <input type="text" id="np-ica" class="np-input w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white outline-none focus:border-amber-500 transition">
                     </div>
-
                     <div class="md:col-span-6">
                         <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Casa Comercial</label>
                         <input type="text" id="np-casa" class="np-input w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white outline-none focus:border-amber-500 transition uppercase">
                     </div>
-
                     <div class="md:col-span-12">
                         <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Ingrediente Activo</label>
                         <input type="text" id="np-ia" class="np-input w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white outline-none focus:border-amber-500 transition">
                     </div>
-
                     <div class="md:col-span-4">
                         <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Categoría Toxicológica</label>
                         <input type="text" id="np-tox" class="np-input w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white outline-none focus:border-amber-500 transition">
                     </div>
-
                     <div class="md:col-span-4">
                         <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Concentración I.A.</label>
                         <input type="text" id="np-conc" class="np-input w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white outline-none focus:border-amber-500 transition">
                     </div>
-
                     <div class="md:col-span-4">
                         <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold">T. Reingreso (Horas)</label>
                         <input type="text" id="np-reingreso" class="np-input w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white outline-none focus:border-amber-500 transition">
+                    </div>
+
+                    <!-- CAMPOS AÑADIDOS: IRAC Y FRAC (NUMÉRICOS) -->
+                    <div class="md:col-span-6">
+                        <label class="block text-[10px] uppercase text-amber-400 mb-1 font-bold">Grupo IRAC (Insecticidas/Acaricidas)</label>
+                        <input type="number" step="any" id="np-irac" class="np-input w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-amber-300 font-bold outline-none focus:border-amber-500 transition text-center" placeholder="Ej: 1, 4, 6">
+                    </div>
+                    <div class="md:col-span-6">
+                        <label class="block text-[10px] uppercase text-amber-400 mb-1 font-bold">Grupo FRAC (Fungicidas)</label>
+                        <input type="number" step="any" id="np-frac" class="np-input w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-amber-300 font-bold outline-none focus:border-amber-500 transition text-center" placeholder="Ej: 3, 11, 7">
                     </div>
 
                     <div class="md:col-span-12">
                         <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Blanco Biológico</label>
                         <input type="text" id="np-blanco" class="np-input w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white outline-none focus:border-amber-500 transition uppercase">
                     </div>
-
                     <div class="md:col-span-4">
                         <label class="block text-[10px] uppercase text-amber-400 mb-1 font-bold">Valor cc/Lts</label>
                         <input type="number" step="0.01" id="np-cclts" class="np-input w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-amber-300 font-bold outline-none focus:border-amber-500 transition text-center" placeholder="0.00">
                     </div>
-
                     <div class="md:col-span-4">
                         <label class="block text-[10px] uppercase text-amber-400 mb-1 font-bold">Valor cc/Grs</label>
                         <input type="number" step="0.01" id="np-ccgrs" class="np-input w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-amber-300 font-bold outline-none focus:border-amber-500 transition text-center" placeholder="0.00">
                     </div>
-
                     <div class="md:col-span-4">
                         <label class="block text-[10px] uppercase text-amber-400 mb-1 font-bold">Dosis Estándar</label>
                         <input type="number" step="0.01" id="np-dosis" class="np-input w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-amber-300 font-bold outline-none focus:border-amber-500 transition text-center" placeholder="0.00">
@@ -268,27 +400,311 @@
         </main>
     </div>
 
-    <!-- Modales Globales -->
-    <div id="modal-overlay" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity">
-        
-        <div id="modal-confirmacion" class="hidden bg-slate-800 border border-slate-600 rounded-2xl p-6 sm:p-8 shadow-2xl max-w-sm w-full text-center">
-            <div class="text-5xl mb-4">❓</div>
-            <h3 id="modal-conf-titulo" class="text-xl font-bold text-white mb-2">¿Estás seguro?</h3>
-            <p id="modal-conf-desc" class="text-slate-300 text-sm mb-8">Descripción de la acción.</p>
-            <div class="flex gap-3 justify-center">
-                <button onclick="cerrarModal()" class="px-4 py-3 bg-slate-600 hover:bg-slate-500 rounded-lg font-bold text-white transition w-full">Cancelar</button>
-                <button id="modal-btn-si" class="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold text-white transition w-full shadow-lg shadow-emerald-900">Sí, Confirmar</button>
+    <!-- SECCIÓN ETIQUETAS DE FUMIGACIÓN (50x25 mm) -->
+    <div id="seccion-etiquetas" class="hidden">
+        <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 no-print">
+            <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <button onclick="location.reload()" class="bg-slate-700 px-3 py-1.5 rounded text-xs hover:bg-slate-600 transition">← Volver al Menú</button>
+                    <div class="bg-emerald-600 p-2 rounded-lg font-bold text-white text-sm">AGROMONTE - ETIQUETAS DE FUMIGACIÓN</div>
+                </div>
             </div>
-        </div>
+        </header>
 
-        <div id="modal-exito" class="hidden bg-slate-800 border-2 border-emerald-500 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-emerald-900/50 max-w-sm w-full text-center scale-100 transition-transform">
-            <div class="text-6xl mb-4">✅</div>
-            <h3 id="modal-exito-titulo" class="text-xl font-black text-emerald-400 mb-2">¡ACCIÓN EXITOSA!</h3>
-            <p id="modal-exito-desc" class="text-slate-300 text-sm mb-8">El proceso se completó correctamente.</p>
-            <button onclick="cerrarModal()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold text-white transition w-full shadow-lg">Aceptar</button>
-        </div>
+        <main class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl no-print">
+                <h2 class="text-xl font-bold text-emerald-400 mb-4 border-b border-slate-700 pb-2">Generador de Etiquetas Térmicas (50x25 mm)</h2>
+                <p class="text-slate-400 text-sm mb-4">Previsualiza y manda a imprimir las etiquetas calculadas directamente con el número de programa actual, bloques, productos y agua configurados.</p>
+                
+                <button onclick="generarEtiquetasDesdePrograma()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-lg shadow-lg transition">
+                    ⚡ Cargar Datos del Programa Actual
+                </button>
+            </div>
+
+            <!-- Contenedor de Vista Previa de Etiquetas -->
+            <div id="contenedor-etiquetas-preview" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 no-print">
+                <div class="text-slate-400 italic col-span-full text-center py-8">Haz clic en el botón superior para cargar las etiquetas del programa activo...</div>
+            </div>
+
+            <div class="flex justify-end no-print pt-4">
+                <button onclick="imprimirEtiquetasZebra()" class="bg-amber-600 hover:bg-amber-500 text-white font-black px-8 py-3 rounded-lg shadow-lg transition">
+                    🖨️ IMPRIMIR ETIQUETAS ZEBRA
+                </button>
+            </div>
+        </main>
     </div>
 
+    <!-- SECCIÓN DESCARGAS Y REPORTES -->
+    <div id="seccion-descargas-reportes" class="hidden">
+        <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 no-print">
+            <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <button onclick="location.reload()" class="bg-slate-700 px-3 py-1.5 rounded text-xs hover:bg-slate-600 transition">← Volver al Menú</button>
+                    <div class="bg-emerald-600 p-2 rounded-lg font-bold text-white text-sm">AGROMONTE - DESCARGAS Y REPORTES</div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 sm:p-6 shadow-xl">
+                <h2 class="text-xl font-bold text-emerald-400 mb-2 border-b border-slate-700 pb-2 flex items-center gap-2">
+                    <span>📊</span> Historial de Rotación y Recetas Aplicadas
+                </h2>
+                <p class="text-slate-400 text-sm mb-6">Filtra la bitácora de rotación histórica por semana agronómica o por rango de fechas y descarga el reporte consolidado en Excel o CSV.</p>
+
+                <!-- Filtros de Búsqueda Dual (Semana Única o Fechas) -->
+                <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700 mb-6 space-y-4">
+                    <div class="flex items-center gap-6 border-b border-slate-700/80 pb-3">
+                        <span class="text-xs uppercase text-slate-400 font-bold">Filtrar por:</span>
+                        <label class="flex items-center gap-2 text-xs font-bold text-emerald-400 cursor-pointer">
+                            <input type="radio" name="modo-filtro-rep" value="semanas" checked onchange="cambiarModoFiltroReporte('semanas')" class="accent-emerald-500">
+                            Semana Específica (AASS)
+                        </label>
+                        <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
+                            <input type="radio" name="modo-filtro-rep" value="fechas" onchange="cambiarModoFiltroReporte('fechas')" class="accent-emerald-500">
+                            Rango de Fechas
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        <div id="col-rep-sem-unica" class="sm:col-span-1 md:col-span-1">
+                            <label class="block text-[11px] uppercase text-emerald-400 font-bold mb-1">Semana (AASS)</label>
+                            <select id="rep-semana-unica" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-white text-xs outline-none focus:border-emerald-500 cursor-pointer">
+                                <option value="">Todas las semanas...</option>
+                            </select>
+                        </div>
+
+                        <div id="col-rep-fec-desde" class="hidden">
+                            <label class="block text-[11px] uppercase text-slate-400 font-bold mb-1">Fecha Desde</label>
+                            <input type="date" id="rep-fecha-inicio" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-white text-xs outline-none focus:border-emerald-500 cursor-pointer">
+                        </div>
+                        <div id="col-rep-fec-hasta" class="hidden">
+                            <label class="block text-[11px] uppercase text-slate-400 font-bold mb-1">Fecha Hasta</label>
+                            <input type="date" id="rep-fecha-fin" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-white text-xs outline-none focus:border-emerald-500 cursor-pointer">
+                        </div>
+
+                        <div class="sm:col-span-1 md:col-span-1">
+                            <label class="block text-[11px] uppercase text-slate-400 font-bold mb-1">Tipo de Aplicación</label>
+                            <select id="rep-tipo-app" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-white text-xs outline-none focus:border-emerald-500 cursor-pointer">
+                                <option value="">Todos los tipos...</option>
+                                <option value="FLOR">FLOR</option>
+                                <option value="ÁCAROS">ÁCAROS</option>
+                                <option value="INSECTOS">INSECTOS</option>
+                                <option value="DESARROLLO">DESARROLLO</option>
+                                <option value="HETERO">HETERO</option>
+                                <option value="AMB 1">AMB 1</option>
+                                <option value="AMB 2">AMB 2</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-end sm:col-span-1 md:col-span-1">
+                            <button type="button" onclick="consultarHistorialDescarga()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2.5 px-4 rounded-lg transition shadow-lg flex items-center justify-center gap-2 cursor-pointer">
+                                <span>🔍</span> FILTRAR DATOS
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Barra de Acciones y Descargas -->
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4 bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                    <span id="rep-contador-registros" class="text-xs text-slate-300 font-bold">0 registros encontrados</span>
+                    <div class="flex items-center gap-3">
+                        <button type="button" onclick="exportarHistorialExcel()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition shadow cursor-pointer">
+                            <span>📗</span> Exportar a Excel (.xlsx)
+                        </button>
+                        <button type="button" onclick="exportarHistorialCSV()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition shadow cursor-pointer">
+                            <span>📄</span> Exportar a CSV
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabla de Vista Previa -->
+                <div class="overflow-x-auto max-h-[500px] border border-slate-700 rounded-xl shadow-inner scroll-horizontal">
+                    <table class="w-full text-left text-xs text-slate-200">
+                        <thead class="bg-slate-900 text-emerald-400 uppercase font-black sticky top-0 border-b border-slate-700">
+                            <tr>
+                                <th class="p-3">Fecha Aprox.</th>
+                                <th class="p-3">Semana</th>
+                                <th class="p-3">Tipo Aplicación</th>
+                                <th class="p-3">Producto / Mezcla</th>
+                                <th class="p-3">Ingrediente Activo</th>
+                                <th class="p-3 text-center">FRAC</th>
+                                <th class="p-3 text-center">IRAC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-reporte-historial" class="divide-y divide-slate-700/60 bg-slate-800/40">
+                            <tr>
+                                <td colspan="7" class="p-6 text-center text-slate-400 italic">Cargando registros históricos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- SECCIÓN HISTORIAL PROGRAMAS DE FUMIGACIÓN -->
+    <div id="seccion-historial-programas" class="hidden">
+        <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 no-print">
+            <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <button onclick="location.reload()" class="bg-slate-700 px-3 py-1.5 rounded text-xs hover:bg-slate-600 transition">← Volver al Menú</button>
+                    <div class="bg-emerald-600 p-2 rounded-lg font-bold text-white text-sm">AGROMONTE - HISTORIAL DE FUMIGACIÓN</div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 sm:p-6 shadow-xl">
+                <h2 class="text-xl font-bold text-emerald-400 mb-2 border-b border-slate-700 pb-2 flex items-center gap-2">
+                    <span>🕒</span> Historial de Órdenes y Programas Generados
+                </h2>
+                <p class="text-slate-400 text-sm mb-6">Busca programas de fumigación por semana única o por rango cronológico. Haz clic sobre el número de OC para abrir el PDF original.</p>
+
+                <!-- Filtros de Búsqueda -->
+                <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700 mb-6 space-y-4">
+                    <div class="flex items-center gap-6 border-b border-slate-700/80 pb-3">
+                        <span class="text-xs uppercase text-slate-400 font-bold">Modo de Búsqueda:</span>
+                        <label class="flex items-center gap-2 text-xs font-bold text-emerald-400 cursor-pointer">
+                            <input type="radio" name="modo-filtro-hist" value="unica" checked onchange="cambiarModoFiltroHistorial('unica')" class="accent-emerald-500">
+                            Semana Específica
+                        </label>
+                        <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
+                            <input type="radio" name="modo-filtro-hist" value="rango" onchange="cambiarModoFiltroHistorial('rango')" class="accent-emerald-500">
+                            Rango de Semanas
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        <div id="col-hist-sem-unica" class="sm:col-span-2 md:col-span-2">
+                            <label class="block text-[11px] uppercase text-emerald-400 font-bold mb-1">Semana (AASS)</label>
+                            <select id="hist-filtro-semana-unica" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-white text-xs outline-none focus:border-emerald-500 cursor-pointer">
+                                <option value="">Todas las semanas...</option>
+                            </select>
+                        </div>
+
+                        <div id="col-hist-sem-rango" class="hidden sm:col-span-2 md:col-span-2 flex gap-3">
+                            <div class="w-1/2">
+                                <label class="block text-[11px] uppercase text-slate-400 font-bold mb-1">Desde Semana</label>
+                                <select id="hist-filtro-semana-desde" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-white text-xs outline-none focus:border-emerald-500 cursor-pointer">
+                                    <option value="">Seleccione...</option>
+                                </select>
+                            </div>
+                            <div class="w-1/2">
+                                <label class="block text-[11px] uppercase text-slate-400 font-bold mb-1">Hasta Semana</label>
+                                <select id="hist-filtro-semana-hasta" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-white text-xs outline-none focus:border-emerald-500 cursor-pointer">
+                                    <option value="">Seleccione...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex items-end">
+                            <button type="button" onclick="aplicarFiltroHistorial()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2.5 px-4 rounded-lg transition shadow flex items-center justify-center gap-2 cursor-pointer">
+                                <span>🔍</span> BUSCAR ORDENES
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Barra de Estado -->
+                <div class="flex items-center justify-between mb-4 bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                    <span id="hist-contador-registros" class="text-xs text-slate-300 font-bold">0 programas registrados</span>
+                </div>
+
+                <!-- Tabla de Resultados -->
+                <div class="overflow-x-auto max-h-[500px] border border-slate-700 rounded-xl shadow-inner scroll-horizontal">
+                    <table class="w-full text-left text-xs text-slate-200">
+                        <thead class="bg-slate-900 text-emerald-400 uppercase font-black sticky top-0 border-b border-slate-700">
+                            <tr>
+                                <th class="p-3">N° Orden (OC)</th>
+                                <th class="p-3">Semana</th>
+                                <th class="p-3">Fecha Ejecución</th>
+                                <th class="p-3">Dirigido a</th>
+                                <th class="p-3">Productos Configurados</th>
+                                <th class="p-3 text-center">Visualizar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-historial-programas-view" class="divide-y divide-slate-700/60 bg-slate-800/40">
+                            <tr><td colspan="6" class="p-6 text-center text-slate-400 italic">Cargando historial...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Estilos de impresión térmica 50x25 mm -->
+    <style>
+        @media print {
+            @page {
+                size: 50mm 25mm;
+                margin: 0;
+            }
+            body {
+                background: white !important;
+                color: black !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            body * {
+                visibility: hidden;
+            }
+            #zona-impresion-etiquetas, #zona-impresion-etiquetas * {
+                visibility: visible;
+            }
+            #zona-impresion-etiquetas {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 50mm;
+                height: 25mm;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+
+    <!-- Modales Globales -->
+    <div id="modal-overlay" class="hidden fixed inset-0 bg-black/85 backdrop-blur-sm z-[100] flex items-center justify-center p-4"></div>
+
+    <script type="module">
+        // Controlador global de navegación entre módulos
+        window.mostrarModulo = function(modulo) {
+            const modulos = [
+                'menu-principal',
+                'seccion-fumigacion',
+                'seccion-pedido-quimicos',
+                'seccion-crear-producto',
+                'seccion-etiquetas',
+                'seccion-descargas-reportes',
+                'seccion-historial-programas'
+            ];
+
+            modulos.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+
+            if (modulo === 'fumigacion') {
+                document.getElementById('seccion-fumigacion')?.classList.remove('hidden');
+            } else if (modulo === 'pedido-quimicos') {
+                document.getElementById('seccion-pedido-quimicos')?.classList.remove('hidden');
+            } else if (modulo === 'crear-producto') {
+                document.getElementById('seccion-crear-producto')?.classList.remove('hidden');
+            } else if (modulo === 'etiquetas') {
+                document.getElementById('seccion-etiquetas')?.classList.remove('hidden');
+            } else if (modulo === 'descargas-reportes') {
+                document.getElementById('seccion-descargas-reportes')?.classList.remove('hidden');
+            } else if (modulo === 'historial-programas') {
+                document.getElementById('seccion-historial-programas')?.classList.remove('hidden');
+                if (typeof window.cargarVistaHistorial === 'function') {
+                    window.cargarVistaHistorial();
+                }
+            }
+        };
+    </script>
     <script type="module" src="app.js"></script>
+    <script type="module" src="historial_fumigacion.js"></script>
 </body>
 </html>
